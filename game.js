@@ -130,9 +130,18 @@ function buySkin(n){
   $('#shopMessage').textContent=n+' equipped. Ready to run!';stats();shop();
 }
 function animatePreviews(t){for(const b of $('#skins').querySelectorAll('button')){const ctx=b.querySelector('canvas').getContext('2d');ctx.clearRect(0,0,240,180);ctx.save();ctx.scale(2.5,2.5);ctx.imageSmoothingEnabled=false;drawRunner(t,ctx,{x:48,y:24,on:false},b.dataset.skin);ctx.restore()}}
+const boxPrice=35;
+function openMysteryBox(){
+  if(run)return;
+  if(coins<boxPrice){$('#shopMessage').textContent='Mystery box costs 35 coins. Collect '+(boxPrice-coins)+' more.';return}
+  const pool=Object.keys(skinCatalog).filter(n=>!owned.includes(n));
+  if(!pool.length){$('#shopMessage').textContent='You own every skin!';return}
+  coins-=boxPrice;const common=pool.filter(n=>!skinCatalog[n].power&&skinCatalog[n].price<=30),rare=pool.filter(n=>!skinCatalog[n].power&&skinCatalog[n].price>30),legendary=pool.filter(n=>skinCatalog[n].power);
+  const roll=Math.random();let group=roll<.72?common:roll<.95?rare:legendary;group=group.length?group:(common.length?common:rare.length?rare:legendary);const reward=group[Math.floor(Math.random()*group.length)];owned.push(reward);save('sOwned',JSON.stringify(owned));save('sCoins',coins);$('#shopMessage').textContent='Mystery box unlocked '+reward+'! Odds: common 72% · rare 23% · legendary 5%.';shop();
+}
 function shop(){
 
-  $('#shop').hidden=false;$('#shopCoins').textContent='✦ '+coins+' coins';
+  $('#shop').hidden=false;$('#shopCoins').textContent='✦ '+coins+' coins';if(!$('#mysteryBox')){const b=document.createElement('button');b.id='mysteryBox';b.className='mysteryBox';b.innerHTML='🎁 Mystery box · 35 coins <small>72% common · 23% rare · 5% legendary</small>';b.onclick=openMysteryBox;$('#shopCoins').after(b)}
   $('#skins').innerHTML=Object.entries(skinCatalog).map(([n,item])=>{
     const selected=skin===n,unlocked=owned.includes(n);
     return '<button class="skinCard '+(item.power?'legendary':'')+'" data-skin="'+n+'" aria-pressed="'+selected+'" aria-label="'+n+', '+(selected?'equipped':unlocked?'equip':item.price+' coins')+'"><b>'+n+'</b><span class="rarity">'+(item.power?'LEGENDARY':'OUTFIT')+'</span><canvas width="240" height="180" role="img" aria-label="'+n+' runner preview"></canvas><span class="skinSwatches" aria-hidden="true">'+item.colors.map(color=>'<i style="background:'+color+'"></i>').join('')+'</span><small>'+(selected?'✓ Equipped':unlocked?'Equip skin':'Unlock · '+item.price+' coins')+'</small><span class="skinDescription">'+(item.description||outfitNames[n])+'</span></button>';
