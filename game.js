@@ -23,15 +23,15 @@ const skinCatalog={
   Kitsune:{colors:['#ba435a','#fff0df','#ffb85e'],price:45,description:'Fox spirit · Pointed mask & three swaying tails'},
   Dragon:{colors:['#287463','#86d6a0','#ffd884'],price:60,description:'Jade dragon · Golden horns & flapping wings'},
   Phoenix:{colors:['#d64020','#ffb342','#fff3a0'],price:250,power:'phoenix',description:'Flaming wings · Triple jump · One revival per run'},
-  Stormcaller:{colors:['#3456a6','#a2dcff','#fff19b'],price:400,power:'storm',description:'Lightning crown · Triple jump · Permanent coin magnet'},
+  Stormcaller:{colors:['#3456a6','#a2dcff','#fff19b'],price:400,power:'storm',description:'Triple jump · Coin magnet · Lightning clears obstacles every 15 seconds'},
   Sentinel:{colors:['#897044','#fff0c4','#91ffe2'],price:650,power:'sentinel',description:'Orbiting shields · Triple jump · 2 armor · Restores 1 every 18 seconds'},
   Titan:{colors:['#466277','#b4d8e7','#79fff1'],price:500,power:'titan',description:'Mech armor · Blocks 3 hits · Restores 1 armor every 12 seconds'},
   Void:{colors:['#6234bd','#d4a1ff','#81f4ff'],price:800,power:'void',description:'Cosmic halo · 4 jumps · Coin magnet · Double coin rewards'}
 };
 
 const outfitNames={Classic:'Street runner · Scarf & backpack',Sunset:'Desert scout · Wide-brim hat & poncho',Mint:'Forest guardian · Antlers & leaf mantle',Glacier:'Ice explorer · Crystal helmet & shoulder guards',Ember:'Fire rider · Horned helmet & exhaust pack',Sakura:'Blossom warrior · Hair blossom & back sword',Volt:'Tech racer · Antenna headset & power pack',Midnight:'Shadow ninja · Hood, mask & twin blades',Gold:'Royal champion · Crown & flowing cape'};
-let runPower='',armor=0,armorClock=0,revives=0,effectClock=0;
-function powerStatus(){if(player&&player.rescue)return 'PHOENIX · RISING FROM THE ASHES';return runPower==='phoenix'?'PHOENIX · 3 JUMPS · '+revives+' REVIVE':runPower==='titan'?'TITAN · '+armor+'/3 ARMOR · '+Math.ceil(12-armorClock)+'s RECHARGE':runPower==='void'?'VOID · 4 JUMPS · MAGNET · 2× COINS':runPower==='storm'?'STORMCALLER · 3 JUMPS · MAGNET':runPower==='sentinel'?'SENTINEL · 3 JUMPS · '+armor+'/2 ARMOR · '+Math.ceil(18-armorClock)+'s RECHARGE':''}
+let runPower='',armor=0,armorClock=0,revives=0,effectClock=0,stormClock=0,stormFlash=0,stormBolts=[];
+function powerStatus(){if(player&&player.rescue)return 'PHOENIX · RISING FROM THE ASHES';return runPower==='phoenix'?'PHOENIX · 3 JUMPS · '+revives+' REVIVE':runPower==='titan'?'TITAN · '+armor+'/3 ARMOR · '+Math.ceil(12-armorClock)+'s RECHARGE':runPower==='void'?'VOID · 4 JUMPS · MAGNET · 2× COINS':runPower==='storm'?'STORMCALLER · 3 JUMPS · MAGNET · ⚡ '+Math.ceil(15-stormClock)+'s':runPower==='sentinel'?'SENTINEL · 3 JUMPS · '+armor+'/2 ARMOR · '+Math.ceil(18-armorClock)+'s RECHARGE':''}
 function revive(){
   if(!revives)return false;revives--;const safe=roofs.find(r=>!r.collapsed&&r.x<=player.x&&r.x+r.w>=player.x)||{x:player.x-80,w:260,y:H*.65};
   if(!roofs.includes(safe)){roofs.push(safe);roofs.sort((a,b)=>a.x-b.x)}
@@ -63,7 +63,7 @@ function updatePhoenixFlight(dt){
 // 3D mode gets a second perspective pass over the runner lane.
 
 function stats(){$('#best').textContent=best;$('#wallet').textContent=coins;$('#score').textContent=Math.floor(score).toString().padStart(4,'0');$('#energy').textContent='✦ '+shards;$('#pace').textContent='SPEED '+(speed/300).toFixed(2)+'×'+(score>500?' · HARD':'');$('#district').textContent=['MIDNIGHT DISTRICT','EMBER HEIGHTS','AURORA QUARTER'][stage-1];$('#shield').textContent=(shield>0?'◈ SHIELD ACTIVE · ':'')+(magnet>0?'🧲 MAGNET '+Math.ceil(magnet)+'s · ':'')+(powerStatus()||'◈ Find power-ups');$('#progress').style.width=(score%250/2.5)+'%'}
-function reset(){score=0;shards=0;speed=300;stage=1;shield=0;magnet=0;runPower=(skinCatalog[skin]||{}).power||'';armor=runPower==='titan'?3:runPower==='sentinel'?2:0;armorClock=0;revives=runPower==='phoenix'?1:0;effectClock=0;drones=[];particles=[];droneTimer=0;keys={};roofs=[{x:-100,w:Math.max(W*.7,420),y:H*.72}];player={x:Math.min(W*.22,220),y:H*.72-38,vy:0,on:true,jumps:0,trail:[],grace:.1};while(roofs.at(-1).x<W+400)addRoof();run=true;paused=false;$('#menu').hidden=true;$('#end').hidden=true;$('#pausePanel').hidden=true;$('#shop').hidden=true;$('#hud').hidden=false;$('#touch').hidden=false;last=performance.now();stats()}
+function reset(){score=0;shards=0;speed=300;stage=1;shield=0;magnet=0;runPower=(skinCatalog[skin]||{}).power||'';armor=runPower==='titan'?3:runPower==='sentinel'?2:0;armorClock=0;revives=runPower==='phoenix'?1:0;effectClock=0;stormClock=0;stormFlash=0;stormBolts=[];drones=[];particles=[];droneTimer=0;keys={};roofs=[{x:-100,w:Math.max(W*.7,420),y:H*.72}];player={x:Math.min(W*.22,220),y:H*.72-38,vy:0,on:true,jumps:0,trail:[],grace:.1};while(roofs.at(-1).x<W+400)addRoof();run=true;paused=false;$('#menu').hidden=true;$('#end').hidden=true;$('#pausePanel').hidden=true;$('#shop').hidden=true;$('#hud').hidden=false;$('#touch').hidden=false;last=performance.now();stats()}
 function jump(){if(!run||paused||player.rescue)return;if(player.on||player.grace>0)player.jumps=0;if(player.jumps<(runPower==='void'?4:['phoenix','storm','sentinel'].includes(runPower)?3:2)){player.vy=-650;player.on=false;player.grace=0;player.jumps++;burst(player.x,player.y+38,'#74f3dc',8)}}
 function pause(value=!paused){if(!run)return;paused=value;keys={};$('#pausePanel').hidden=!paused;last=performance.now()}
 function finish(reason){if(!run)return;run=false;paused=false;best=Math.max(best,Math.floor(score));save('sBest',best);$('#hud').hidden=true;$('#touch').hidden=true;$('#pausePanel').hidden=true;$('#final').textContent=Math.floor(score);$('#result').textContent=reason+' · '+shards+' coins collected';$('#end').hidden=false;stats()}
@@ -84,9 +84,44 @@ function updateArmor(dt){
 function difficulty(){return Math.max(0,Math.min(1,(score-500)/500))}
 function addRoof(){const prev=roofs.at(-1),gap=85+Math.random()*65,w=180+Math.random()*180;const y=Math.max(H*.45,Math.min(H*.79,prev.y+(Math.random()-.5)*125));roofs.push({x:prev.x+prev.w+gap,w,y,shard:Math.random()<.85,spike:Math.random()<.28+difficulty()*.17,power:Math.random()<.12,magnet:Math.random()<.18});assignTrap(roofs.at(-1))}
 function spikeHit(r){return r.spike&&player.x+12>r.x+r.w*.65-12&&player.x-12<r.x+r.w*.65+12&&player.y+38>r.y-24&&player.y<r.y}
+// Clear current hazards before collision checks; future rooftops spawn normally.
+function updateStorm(dt){
+  stormFlash=Math.max(0,stormFlash-dt);
+  for(const bolt of stormBolts)bolt.x-=speed*dt;
+  if(stormFlash===0)stormBolts=[];
+  if(runPower!=='storm')return;
+  stormClock+=dt;
+  if(stormClock<15)return;
+  stormClock%=15;stormFlash=.45;
+  stormBolts=[{x:player.x,y:player.y+18}];
+  for(const r of roofs){
+    if(r.spike||r.trap){
+      const x=r.x+r.w*.6;
+      stormBolts.push({x,y:r.y});
+      burst(x,r.y-12,'#a2dcff',20);
+      r.spike=false;r.trap=null;r.trapClock=0;r.crumbleTime=null;
+    }
+  }
+  for(const drone of drones){
+    stormBolts.push({x:drone.x,y:drone.y});
+    burst(drone.x,drone.y,'#fff19b',20);
+  }
+  drones=[];
+}
+function drawStorm(){
+  if(stormFlash<=0)return;
+  g.save();g.globalAlpha=stormFlash/.45;
+  g.strokeStyle='#a2dcff';g.lineWidth=4;g.shadowColor='#a2dcff';g.shadowBlur=14;
+  for(const bolt of stormBolts){
+    g.beginPath();g.moveTo(bolt.x-18,0);
+    for(let i=1;i<8;i++)g.lineTo(bolt.x+(i%2?12:-12),bolt.y*i/8);
+    g.lineTo(bolt.x,bolt.y);g.stroke();
+  }
+  g.restore();
+}
 function update(dt){
 if(player.rescue){updatePhoenixFlight(dt);return}
-updateArmor(dt);
+updateArmor(dt);updateStorm(dt);
 effectClock+=dt;if(runPower&&effectClock>.065){effectClock=0;burst(player.x-16,player.y+25,skinCatalog[skin].colors[2],2)}
 speed=Math.min(450+difficulty()*50,speed+dt*(score>500?3:1));score+=dt*10;stage=1+Math.floor(score/250)%3;player.invincible=Math.max(0,(player.invincible||0)-dt);shield=Math.max(0,shield-dt);magnet=Math.max(0,magnet-dt);const foot=player.y+38;player.grace=player.on?.1:Math.max(0,player.grace-dt);player.vy+=1550*dt;player.y+=player.vy*dt;player.on=false;
 for(const r of roofs){r.x-=speed*dt;advanceTrap(r,dt);if(r.collapsed)continue;if(player.x+12>r.x&&player.x-12<r.x+r.w&&player.vy>=0&&foot<=r.y+1&&player.y+38>=r.y){player.y=r.y-38;player.vy=0;player.on=true;player.jumps=0}
@@ -146,6 +181,7 @@ function drawCity(t){
 function render(t,dt){drawCity(t);for(const r of roofs){if(r.collapsed)continue;g.fillStyle='#101a30';g.fillRect(r.x,r.y,r.w,H-r.y);g.fillStyle='#74f3dc';g.fillRect(r.x,r.y,r.w,4);g.fillStyle='#32415c';g.fillRect(r.x,r.y+6,r.w,7);drawRoofWindows(r);drawTrap(r);if(r.spike)drawSpike(r,t);if(r.shard){g.fillStyle='#ffe59a';g.beginPath();g.ellipse(r.x+r.w*.4,r.y-26+Math.sin(t*.004)*3,7,10,0,0,7);g.fill()}if(r.magnet)drawMagnet(r.x+r.w*.82,r.y-29+Math.sin(t*.004)*3);if(r.power){g.strokeStyle='#8af5ff';g.lineWidth=3;g.beginPath();g.arc(r.x+r.w*.2,r.y-29,11,0,7);g.stroke()}}
 for(const b of drones)drawDrone(b.x,b.y,t);
 if(player){if(magnet>0||['void','storm'].includes(runPower)){g.save();g.strokeStyle='#ff8ed566';g.lineWidth=2;g.beginPath();g.ellipse(player.x,player.y+20,43+Math.sin(t*.006)*5,32,0,0,7);g.stroke();g.restore()}if(shield>0||player.invincible>0){g.strokeStyle='#8af5ff';g.lineWidth=2;g.beginPath();g.arc(player.x,player.y+17,34,0,7);g.stroke()}drawRunner(t)}
+drawStorm();
 for(const q of particles){if(!paused){q.x+=q.vx*dt;q.y+=q.vy*dt;q.life-=dt}g.globalAlpha=Math.max(0,q.life/.6);g.fillStyle=q.color;g.fillRect(q.x,q.y,4,4)}g.globalAlpha=1;particles=particles.filter(q=>q.life>0)}
 function frame(t){if(!$('#shop').hidden)animatePreviews(t);const dt=Math.min(.035,(t-last)/1000||.016);last=t;if(run&&!paused)update(dt);render(paused?0:t,dt);requestAnimationFrame(frame)}
 $('#play').onclick=reset;$('#again').onclick=reset;$('#pause').onclick=()=>pause();$('#resume').onclick=()=>pause(false);$('#home').onclick=()=>{$('#end').hidden=true;$('#menu').hidden=false};
