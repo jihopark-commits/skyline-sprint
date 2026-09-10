@@ -18,6 +18,10 @@ const skinCatalog={
   Volt:{colors:['#567725','#c9ff53','#f4ffad'],price:30},
   Midnight:{colors:['#252c48','#657595','#a7b7ff'],price:30},
   Gold:{colors:['#b47c23','#ffe09a','#fff4d6'],price:40},
+  Astro:{colors:['#596ac2','#e0eaff','#83f5ff'],price:35,description:'Space explorer · Bubble helmet & pulsing jetpack'},
+  Shark:{colors:['#247e9c','#8edbea','#f4ffff'],price:30,description:'Ocean runner · Shark hood, dorsal fin & tail'},
+  Kitsune:{colors:['#ba435a','#fff0df','#ffb85e'],price:45,description:'Fox spirit · Pointed mask & three swaying tails'},
+  Dragon:{colors:['#287463','#86d6a0','#ffd884'],price:60,description:'Jade dragon · Golden horns & flapping wings'},
   Phoenix:{colors:['#d64020','#ffb342','#fff3a0'],price:250,power:'phoenix',description:'Flaming wings · Triple jump · One revival per run'},
   Titan:{colors:['#466277','#b4d8e7','#79fff1'],price:500,power:'titan',description:'Mech armor · Blocks 3 hits · Restores 1 armor every 12 seconds'},
   Void:{colors:['#6234bd','#d4a1ff','#81f4ff'],price:800,power:'void',description:'Cosmic halo · 4 jumps · Coin magnet · Double coin rewards'}
@@ -191,6 +195,30 @@ function drawRunner(t,g=c.getContext('2d'),playerState=player,skinName=document.
   function rect(x,y,w,h,color){g.fillStyle=color;g.fillRect(x,y,w,h)}
   function limb(points,color,width){g.strokeStyle=color;g.lineWidth=width;g.lineCap='round';g.lineJoin='round';g.beginPath();g.moveTo(points[0],points[1]);for(let i=2;i<points.length;i+=2)g.lineTo(points[i],points[i+1]);g.stroke()}
   function poly(points,color){g.fillStyle=color;g.beginPath();g.moveTo(points[0],points[1]);for(let i=2;i<points.length;i+=2)g.lineTo(points[i],points[i+1]);g.closePath();g.fill()}
+  if(skinName==='Astro'){
+    rect(-22,12,10,20,colors[1]);rect(-21,16,5,10,colors[0]);
+    poly([-22,32,-18,40+Math.sin(t*.018)*3,-13,32],colors[2]);
+  }
+  if(skinName==='Shark'){
+    poly([-12,13,-28,3,-23,25,-12,29],colors[0]);
+    const sway=Math.sin(t*.01)*3;
+    poly([-12,26,-26,29,-34,23+sway,-31,33,-35,40+sway,-23,35,-9,31],colors[1]);
+  }
+  if(skinName==='Kitsune'){
+    for(let i=0;i<3;i++){
+      const tipY=4+i*13+Math.sin(t*.008+i)*3;
+      poly([-8,29,-22,26,-34,tipY,-39,tipY-8,-25,tipY-4,-15,21],colors[0]);
+      poly([-34,tipY,-39,tipY-8,-25,tipY-4,-28,tipY+2],colors[1]);
+    }
+  }
+  if(skinName==='Dragon'){
+    const flap=Math.sin(t*.009)*5;
+    for(const side of [-1,1]){
+      g.save();g.scale(side,1);
+      poly([-7,17,-29,-5+flap,-34,16+flap,-24,13,-24,25,-15,21,-7,29],colors[0]);
+      limb([-7,17,-29,-5+flap,-24,13,-15,21],colors[1],2);g.restore();
+    }
+  }
   if(skinName==='Phoenix'){
     g.save();if(player.rescue)g.scale(1.7,1.35);
     const flap=Math.sin(t*(player.rescue ? .022 : .008))*(player.rescue?20:7);
@@ -227,6 +255,31 @@ function drawRunner(t,g=c.getContext('2d'),playerState=player,skinName=document.
   // Front sleeve, cuff, glove, and shoulder insignia.
   limb([5,18,9+stride*3,23,7+stride*6,26],colors[0],5);
   rect(5,17,3,3,colors[2]);rect(5+stride*6,24,5,4,'#18243b');rect(7+stride*6,24,2,1,'#8795af');
+  if(skinName==='Astro'){
+    g.fillStyle='#14354a';g.beginPath();g.ellipse(2,1,15,16,0,0,Math.PI*2);g.fill();
+    g.strokeStyle=colors[1];g.lineWidth=3;g.stroke();
+    rect(-7,-5,19,8,colors[2]);rect(-5,-4,6,2,'#ffffff');rect(-8,13,20,4,colors[1]);
+    rect(-4,19,11,6,colors[1]);rect(-2,21,3,2,colors[0]);rect(3,21,2,2,colors[2]);
+  }
+  if(skinName==='Shark'){
+    poly([-11,12,-13,-4,-5,-14,8,-12,16,-2,14,13,8,9,-5,9],colors[0]);
+    poly([-6,0,10,0,13,11,-6,11],colors[1]);
+    for(let i=0;i<4;i++)poly([-6+i*5,0,-4+i*5,5,-2+i*5,0],'#fff');
+    rect(6,-7,4,3,'#132b3b');rect(7,-7,1,1,'#fff');
+  }
+  if(skinName==='Kitsune'){
+    poly([-10,8,-12,-17,-3,-10,4,-10,14,-17,13,7,3,14],colors[1]);
+    poly([-10,-14,-8,-5,-4,-9],colors[0]);poly([11,-14,6,-9,11,-5],colors[0]);
+    limb([-7,1,-2,3,0,1],colors[0],2);limb([5,1,8,3,11,0],colors[0],2);
+    poly([1,7,6,7,3,10],colors[0]);rect(1,-6,3,5,colors[2]);
+  }
+  if(skinName==='Dragon'){
+    poly([-10,9,-12,-6,0,-12,12,-5,16,8,8,12],colors[0]);
+    poly([-10,-5,-15,-20,-7,-15,-4,-7],colors[2]);poly([6,-8,11,-21,14,-15,12,-2],colors[2]);
+    rect(-5,0,6,3,colors[2]);rect(7,0,5,3,colors[2]);
+    poly([-7,16,0,13,8,16,6,26,-5,26],colors[1]);
+    limb([-4,19,5,19,-4,22,5,22],colors[0],1);
+  }
   if(skinName==='Sunset'){rect(-13,-8,29,5,'#c99861');rect(-7,-16,16,9,'#e5bc7b');poly([-10,14,0,21,11,14,15,27,-14,27],colors[1])}
   if(skinName==='Mint'){limb([-6,-3,-13,-13,-11,-21],'#d6d3a0',3);limb([8,-3,15,-14,12,-22],'#d6d3a0',3);poly([-12,14,-17,24,-4,20,0,14],colors[1])}
   if(skinName==='Glacier'){poly([-10,0,-12,-12,-4,-7,1,-20,7,-8,14,-13,12,1],colors[1]);poly([-14,14,-20,23,-7,22],colors[2]);poly([9,13,18,21,8,23],colors[1])}
