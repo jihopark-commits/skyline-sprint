@@ -23,13 +23,15 @@ const skinCatalog={
   Kitsune:{colors:['#ba435a','#fff0df','#ffb85e'],price:45,description:'Fox spirit · Pointed mask & three swaying tails'},
   Dragon:{colors:['#287463','#86d6a0','#ffd884'],price:60,description:'Jade dragon · Golden horns & flapping wings'},
   Phoenix:{colors:['#d64020','#ffb342','#fff3a0'],price:250,power:'phoenix',description:'Flaming wings · Triple jump · One revival per run'},
+  Stormcaller:{colors:['#3456a6','#a2dcff','#fff19b'],price:400,power:'storm',description:'Lightning crown · Triple jump · Permanent coin magnet'},
+  Sentinel:{colors:['#897044','#fff0c4','#91ffe2'],price:650,power:'sentinel',description:'Orbiting shields · Triple jump · 2 armor · Restores 1 every 18 seconds'},
   Titan:{colors:['#466277','#b4d8e7','#79fff1'],price:500,power:'titan',description:'Mech armor · Blocks 3 hits · Restores 1 armor every 12 seconds'},
   Void:{colors:['#6234bd','#d4a1ff','#81f4ff'],price:800,power:'void',description:'Cosmic halo · 4 jumps · Coin magnet · Double coin rewards'}
 };
 
 const outfitNames={Classic:'Street runner · Scarf & backpack',Sunset:'Desert scout · Wide-brim hat & poncho',Mint:'Forest guardian · Antlers & leaf mantle',Glacier:'Ice explorer · Crystal helmet & shoulder guards',Ember:'Fire rider · Horned helmet & exhaust pack',Sakura:'Blossom warrior · Hair blossom & back sword',Volt:'Tech racer · Antenna headset & power pack',Midnight:'Shadow ninja · Hood, mask & twin blades',Gold:'Royal champion · Crown & flowing cape'};
 let runPower='',armor=0,armorClock=0,revives=0,effectClock=0;
-function powerStatus(){if(player&&player.rescue)return 'PHOENIX · RISING FROM THE ASHES';return runPower==='phoenix'?'PHOENIX · 3 JUMPS · '+revives+' REVIVE':runPower==='titan'?'TITAN · '+armor+'/3 ARMOR · '+Math.ceil(12-armorClock)+'s RECHARGE':runPower==='void'?'VOID · 4 JUMPS · MAGNET · 2× COINS':''}
+function powerStatus(){if(player&&player.rescue)return 'PHOENIX · RISING FROM THE ASHES';return runPower==='phoenix'?'PHOENIX · 3 JUMPS · '+revives+' REVIVE':runPower==='titan'?'TITAN · '+armor+'/3 ARMOR · '+Math.ceil(12-armorClock)+'s RECHARGE':runPower==='void'?'VOID · 4 JUMPS · MAGNET · 2× COINS':runPower==='storm'?'STORMCALLER · 3 JUMPS · MAGNET':runPower==='sentinel'?'SENTINEL · 3 JUMPS · '+armor+'/2 ARMOR · '+Math.ceil(18-armorClock)+'s RECHARGE':''}
 function revive(){
   if(!revives)return false;revives--;const safe=roofs.find(r=>!r.collapsed&&r.x<=player.x&&r.x+r.w>=player.x)||{x:player.x-80,w:260,y:H*.65};
   if(!roofs.includes(safe)){roofs.push(safe);roofs.sort((a,b)=>a.x-b.x)}
@@ -61,8 +63,8 @@ function updatePhoenixFlight(dt){
 // 3D mode gets a second perspective pass over the runner lane.
 
 function stats(){$('#best').textContent=best;$('#wallet').textContent=coins;$('#score').textContent=Math.floor(score).toString().padStart(4,'0');$('#energy').textContent='✦ '+shards;$('#pace').textContent='SPEED '+(speed/300).toFixed(2)+'×'+(score>500?' · HARD':'');$('#district').textContent=['MIDNIGHT DISTRICT','EMBER HEIGHTS','AURORA QUARTER'][stage-1];$('#shield').textContent=(shield>0?'◈ SHIELD ACTIVE · ':'')+(magnet>0?'🧲 MAGNET '+Math.ceil(magnet)+'s · ':'')+(powerStatus()||'◈ Find power-ups');$('#progress').style.width=(score%250/2.5)+'%'}
-function reset(){score=0;shards=0;speed=300;stage=1;shield=0;magnet=0;runPower=(skinCatalog[skin]||{}).power||'';armor=runPower==='titan'?3:0;armorClock=0;revives=runPower==='phoenix'?1:0;effectClock=0;drones=[];particles=[];droneTimer=0;keys={};roofs=[{x:-100,w:Math.max(W*.7,420),y:H*.72}];player={x:Math.min(W*.22,220),y:H*.72-38,vy:0,on:true,jumps:0,trail:[],grace:.1};while(roofs.at(-1).x<W+400)addRoof();run=true;paused=false;$('#menu').hidden=true;$('#end').hidden=true;$('#pausePanel').hidden=true;$('#shop').hidden=true;$('#hud').hidden=false;$('#touch').hidden=false;last=performance.now();stats()}
-function jump(){if(!run||paused||player.rescue)return;if(player.on||player.grace>0)player.jumps=0;if(player.jumps<(runPower==='void'?4:runPower==='phoenix'?3:2)){player.vy=-650;player.on=false;player.grace=0;player.jumps++;burst(player.x,player.y+38,'#74f3dc',8)}}
+function reset(){score=0;shards=0;speed=300;stage=1;shield=0;magnet=0;runPower=(skinCatalog[skin]||{}).power||'';armor=runPower==='titan'?3:runPower==='sentinel'?2:0;armorClock=0;revives=runPower==='phoenix'?1:0;effectClock=0;drones=[];particles=[];droneTimer=0;keys={};roofs=[{x:-100,w:Math.max(W*.7,420),y:H*.72}];player={x:Math.min(W*.22,220),y:H*.72-38,vy:0,on:true,jumps:0,trail:[],grace:.1};while(roofs.at(-1).x<W+400)addRoof();run=true;paused=false;$('#menu').hidden=true;$('#end').hidden=true;$('#pausePanel').hidden=true;$('#shop').hidden=true;$('#hud').hidden=false;$('#touch').hidden=false;last=performance.now();stats()}
+function jump(){if(!run||paused||player.rescue)return;if(player.on||player.grace>0)player.jumps=0;if(player.jumps<(runPower==='void'?4:['phoenix','storm','sentinel'].includes(runPower)?3:2)){player.vy=-650;player.on=false;player.grace=0;player.jumps++;burst(player.x,player.y+38,'#74f3dc',8)}}
 function pause(value=!paused){if(!run)return;paused=value;keys={};$('#pausePanel').hidden=!paused;last=performance.now()}
 function finish(reason){if(!run)return;run=false;paused=false;best=Math.max(best,Math.floor(score));save('sBest',best);$('#hud').hidden=true;$('#touch').hidden=true;$('#pausePanel').hidden=true;$('#final').textContent=Math.floor(score);$('#result').textContent=reason+' · '+shards+' coins collected';$('#end').hidden=false;stats()}
 function burst(x,y,color,n=15){for(let i=0;i<n;i++)particles.push({x,y,vx:(Math.random()-.5)*210,vy:(Math.random()-.7)*220,life:.6,color})}
@@ -73,16 +75,22 @@ function damage(reason){
   else if(!revive())finish(reason);
 }
 
+function updateArmor(dt){
+  const interval=runPower==='titan'?12:runPower==='sentinel'?18:0;
+  if(!interval)return;
+  armorClock+=dt;
+  while(armorClock>=interval){armorClock-=interval;armor=Math.min(runPower==='titan'?3:2,armor+1)}
+}
 function difficulty(){return Math.max(0,Math.min(1,(score-500)/500))}
 function addRoof(){const prev=roofs.at(-1),gap=85+Math.random()*65,w=180+Math.random()*180;const y=Math.max(H*.45,Math.min(H*.79,prev.y+(Math.random()-.5)*125));roofs.push({x:prev.x+prev.w+gap,w,y,shard:Math.random()<.85,spike:Math.random()<.28+difficulty()*.17,power:Math.random()<.12,magnet:Math.random()<.18});assignTrap(roofs.at(-1))}
 function spikeHit(r){return r.spike&&player.x+12>r.x+r.w*.65-12&&player.x-12<r.x+r.w*.65+12&&player.y+38>r.y-24&&player.y<r.y}
 function update(dt){
 if(player.rescue){updatePhoenixFlight(dt);return}
-if(runPower==='titan'){armorClock+=dt;if(armorClock>=12){armorClock=0;armor=Math.min(3,armor+1)}}
+updateArmor(dt);
 effectClock+=dt;if(runPower&&effectClock>.065){effectClock=0;burst(player.x-16,player.y+25,skinCatalog[skin].colors[2],2)}
 speed=Math.min(450+difficulty()*50,speed+dt*(score>500?3:1));score+=dt*10;stage=1+Math.floor(score/250)%3;player.invincible=Math.max(0,(player.invincible||0)-dt);shield=Math.max(0,shield-dt);magnet=Math.max(0,magnet-dt);const foot=player.y+38;player.grace=player.on?.1:Math.max(0,player.grace-dt);player.vy+=1550*dt;player.y+=player.vy*dt;player.on=false;
 for(const r of roofs){r.x-=speed*dt;advanceTrap(r,dt);if(r.collapsed)continue;if(player.x+12>r.x&&player.x-12<r.x+r.w&&player.vy>=0&&foot<=r.y+1&&player.y+38>=r.y){player.y=r.y-38;player.vy=0;player.on=true;player.jumps=0}
-const cx=r.x+r.w*.4;if(r.shard&&Math.abs(player.x-cx)<(runPower==='void'||magnet>0?220:27)&&Math.abs(player.y+18-(r.y-26))<(runPower==='void'||magnet>0?180:36)){r.shard=false;const reward=runPower==='void'?2:1;shards+=reward;coins+=reward;save('sCoins',coins);burst(cx,r.y-26,'#ffe59a');if(magnet>0||runPower==='void')for(let i=0;i<5;i++)particles.push({x:cx,y:r.y-26,vx:(player.x-cx)/.3,vy:(player.y+18-(r.y-26))/.3,life:.3,color:'#ffb7e8'})}
+const cx=r.x+r.w*.4;if(r.shard&&Math.abs(player.x-cx)<(['void','storm'].includes(runPower)||magnet>0?220:27)&&Math.abs(player.y+18-(r.y-26))<(['void','storm'].includes(runPower)||magnet>0?180:36)){r.shard=false;const reward=runPower==='void'?2:1;shards+=reward;coins+=reward;save('sCoins',coins);burst(cx,r.y-26,'#ffe59a');if(magnet>0||['void','storm'].includes(runPower))for(let i=0;i<5;i++)particles.push({x:cx,y:r.y-26,vx:(player.x-cx)/.3,vy:(player.y+18-(r.y-26))/.3,life:.3,color:'#ffb7e8'})}
 if(r.magnet&&Math.abs(player.x-(r.x+r.w*.82))<28&&Math.abs(player.y+18-(r.y-29))<38){r.magnet=false;magnet=10;burst(player.x,player.y,'#ff8ed5',20)}
 if(r.power&&Math.abs(player.x-(r.x+r.w*.2))<27&&Math.abs(player.y+18-(r.y-29))<36){r.power=false;shield=12;burst(player.x,player.y,'#8af5ff')}
 if(player.on&&Math.abs(player.y+38-r.y)<1)touchTrap(r);checkTrap(r);if(!run)return;if(spikeHit(r))damage('Watch those spikes')}
@@ -137,7 +145,7 @@ function drawCity(t){
 
 function render(t,dt){drawCity(t);for(const r of roofs){if(r.collapsed)continue;g.fillStyle='#101a30';g.fillRect(r.x,r.y,r.w,H-r.y);g.fillStyle='#74f3dc';g.fillRect(r.x,r.y,r.w,4);g.fillStyle='#32415c';g.fillRect(r.x,r.y+6,r.w,7);drawRoofWindows(r);drawTrap(r);if(r.spike)drawSpike(r,t);if(r.shard){g.fillStyle='#ffe59a';g.beginPath();g.ellipse(r.x+r.w*.4,r.y-26+Math.sin(t*.004)*3,7,10,0,0,7);g.fill()}if(r.magnet)drawMagnet(r.x+r.w*.82,r.y-29+Math.sin(t*.004)*3);if(r.power){g.strokeStyle='#8af5ff';g.lineWidth=3;g.beginPath();g.arc(r.x+r.w*.2,r.y-29,11,0,7);g.stroke()}}
 for(const b of drones)drawDrone(b.x,b.y,t);
-if(player){if(magnet>0||runPower==='void'){g.save();g.strokeStyle='#ff8ed566';g.lineWidth=2;g.beginPath();g.ellipse(player.x,player.y+20,43+Math.sin(t*.006)*5,32,0,0,7);g.stroke();g.restore()}if(shield>0||player.invincible>0){g.strokeStyle='#8af5ff';g.lineWidth=2;g.beginPath();g.arc(player.x,player.y+17,34,0,7);g.stroke()}drawRunner(t)}
+if(player){if(magnet>0||['void','storm'].includes(runPower)){g.save();g.strokeStyle='#ff8ed566';g.lineWidth=2;g.beginPath();g.ellipse(player.x,player.y+20,43+Math.sin(t*.006)*5,32,0,0,7);g.stroke();g.restore()}if(shield>0||player.invincible>0){g.strokeStyle='#8af5ff';g.lineWidth=2;g.beginPath();g.arc(player.x,player.y+17,34,0,7);g.stroke()}drawRunner(t)}
 for(const q of particles){if(!paused){q.x+=q.vx*dt;q.y+=q.vy*dt;q.life-=dt}g.globalAlpha=Math.max(0,q.life/.6);g.fillStyle=q.color;g.fillRect(q.x,q.y,4,4)}g.globalAlpha=1;particles=particles.filter(q=>q.life>0)}
 function frame(t){if(!$('#shop').hidden)animatePreviews(t);const dt=Math.min(.035,(t-last)/1000||.016);last=t;if(run&&!paused)update(dt);render(paused?0:t,dt);requestAnimationFrame(frame)}
 $('#play').onclick=reset;$('#again').onclick=reset;$('#pause').onclick=()=>pause();$('#resume').onclick=()=>pause(false);$('#home').onclick=()=>{$('#end').hidden=true;$('#menu').hidden=false};
@@ -195,6 +203,20 @@ function drawRunner(t,g=c.getContext('2d'),playerState=player,skinName=document.
   function rect(x,y,w,h,color){g.fillStyle=color;g.fillRect(x,y,w,h)}
   function limb(points,color,width){g.strokeStyle=color;g.lineWidth=width;g.lineCap='round';g.lineJoin='round';g.beginPath();g.moveTo(points[0],points[1]);for(let i=2;i<points.length;i+=2)g.lineTo(points[i],points[i+1]);g.stroke()}
   function poly(points,color){g.fillStyle=color;g.beginPath();g.moveTo(points[0],points[1]);for(let i=2;i<points.length;i+=2)g.lineTo(points[i],points[i+1]);g.closePath();g.fill()}
+  if(skinName==='Stormcaller'){
+    const flicker=Math.sin(t*.015)*3;
+    limb([-17,-12,-27,2,-20,2,-31,20+flicker],colors[2],2);
+    limb([22,-8,29,6,23,6,28,21-flicker],colors[2],2);
+    poly([-8,12,-26,31+flicker,-13,27,-8,34,7,15],colors[0]);
+  }
+  if(skinName==='Sentinel'){
+    for(let i=0;i<2;i++){
+      const a=t*.002+i*Math.PI,x=Math.cos(a)*27,y=13+Math.sin(a)*9;
+      const charged=!run||skinName!==skin||armor>i;
+      poly([x-6,y-8,x+6,y-8,x+7,y+1,x,y+9,x-7,y+1],charged?colors[1]:'#454951');
+      poly([x-3,y-5,x+3,y-5,x+3,y+1,x,y+5,x-3,y+1],charged?colors[2]:'#67717a');
+    }
+  }
   if(skinName==='Astro'){
     rect(-22,12,10,20,colors[1]);rect(-21,16,5,10,colors[0]);
     poly([-22,32,-18,40+Math.sin(t*.018)*3,-13,32],colors[2]);
@@ -279,6 +301,19 @@ function drawRunner(t,g=c.getContext('2d'),playerState=player,skinName=document.
     rect(-5,0,6,3,colors[2]);rect(7,0,5,3,colors[2]);
     poly([-7,16,0,13,8,16,6,26,-5,26],colors[1]);
     limb([-4,19,5,19,-4,22,5,22],colors[0],1);
+  }
+  if(skinName==='Stormcaller'){
+    poly([-10,-4,-13,-17,-5,-11,1,-22,6,-11,14,-17,11,-4],colors[1]);
+    rect(-6,-5,15,3,colors[2]);rect(0,2,11,3,colors[2]);
+    poly([2,15,-4,23,1,23,-1,29,8,19,3,19],colors[2]);
+  }
+  if(skinName==='Sentinel'){
+    poly([-11,10,-12,-7,0,-15,13,-7,14,10,8,6,-6,6],colors[1]);
+    rect(-6,-3,17,7,colors[0]);rect(-3,-1,12,2,colors[2]);
+    poly([-14,13,-20,21,-8,24,-3,15],colors[1]);
+    poly([8,13,18,20,12,25,5,17],colors[1]);
+    poly([-7,16,7,16,9,25,0,31,-9,25],colors[0]);
+    poly([0,18,5,23,0,28,-5,23],colors[2]);
   }
   if(skinName==='Sunset'){rect(-13,-8,29,5,'#c99861');rect(-7,-16,16,9,'#e5bc7b');poly([-10,14,0,21,11,14,15,27,-14,27],colors[1])}
   if(skinName==='Mint'){limb([-6,-3,-13,-13,-11,-21],'#d6d3a0',3);limb([8,-3,15,-14,12,-22],'#d6d3a0',3);poly([-12,14,-17,24,-4,20,0,14],colors[1])}
